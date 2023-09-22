@@ -45,7 +45,7 @@ async function main() {
       type: "list",
       name: "command",
       message: "Choose a command:",
-      choices: ["decode", "sample", "publish"],
+      choices: ["decode", "seach_by_ids", "sample", "publish"],
     },
   ]);
 
@@ -58,6 +58,37 @@ async function main() {
       },
     ]);
     console.log(decodeToRaw(bech32));
+  } else if (command === "seach_by_ids") {
+    const { ids } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "ids",
+        message: "Enter event ids (any format will do):",
+        default: "",
+      },
+    ]);
+
+    let filter = {
+      ids: ids.split(",").map((id) => {
+        if (id.startsWith("nostr:")) {
+          id = id.slice(6);
+        }
+        if (id.startsWith("n")) {
+          let t = decodeToRaw(id);
+          if (t.id) {
+            id = t.id;
+          } else {
+            id = t;
+          }
+        }
+        return id;
+      }),
+    };
+    let pool = new SimplePool();
+    let events = await pool.list(relays, [filter]);
+    console.log(JSON.stringify(events, null, 2));
+    pool.close(relays);
+    process.exit(0);
   } else if (command === "sample") {
     const { kinds, limit, authors } = await inquirer.prompt([
       {
@@ -90,7 +121,7 @@ async function main() {
 
     let pool = new SimplePool();
     let events = await pool.list(relays, [filter]);
-    console.log(events);
+    console.log(JSON.stringify(events, null, 2));
     pool.close(relays);
     process.exit(0);
   } else if (command === "publish") {
@@ -132,19 +163,18 @@ async function main() {
     }
 
     try {
-        event.id = getEventHash(event);
-        event.sig = getSignature(event, priv);
-        let pool = new SimplePool();
-        
-        // If pool.publish returns a promise, await it
-        const publishes = pool.publish(relays, event);
-        await Promise.all(publishes)
-        pool.close(relays);
-        process.exit(0);
-    } catch (error) {
-        console.error("Error:", error);
-    }
+      event.id = getEventHash(event);
+      event.sig = getSignature(event, priv);
+      let pool = new SimplePool();
 
+      // If pool.publish returns a promise, await it
+      const publishes = pool.publish(relays, event);
+      await Promise.all(publishes);
+      pool.close(relays);
+      process.exit(0);
+    } catch (error) {
+      console.error("Error:", error);
+    }
   }
 }
 main();
