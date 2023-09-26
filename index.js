@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 import "websocket-polyfill";
 import inquirer from "inquirer";
-import { decodeToRaw } from "./src/bech32.js";
+import { decodeToRaw, decryptIfNecessary } from "./src/utils.js";
 import {
   SimplePool,
   getPublicKey,
   getEventHash,
   getSignature,
-  relayInit
+  relayInit,
+  nip19,
 } from "nostr-tools";
 import dotenv from "dotenv";
+import crypto from 'node:crypto'
+globalThis.crypto = crypto
 dotenv.config();
 
 let relays = process.env.DEFAULT_RELAYS.split(",");
@@ -46,7 +49,7 @@ async function main() {
       type: "list",
       name: "command",
       message: "Choose a command:",
-      choices: ["decode", "seach_by_ids", "sample", "publish"],
+      choices: ["key", "decode", "seach_by_ids", "sample", "publish"],
     },
   ]);
 
@@ -59,6 +62,8 @@ async function main() {
       },
     ]);
     console.log(decodeToRaw(bech32));
+  } else if (command === "key") {
+    console.log(nip19.npubEncode(pub));
   } else if (command === "seach_by_ids") {
     const { ids } = await inquirer.prompt([
       {
@@ -70,23 +75,11 @@ async function main() {
     ]);
 
     let filter = {
-      ids: ids.split(",").map((id) => {
-        if (id.startsWith("nostr:")) {
-          id = id.slice(6);
-        }
-        if (id.startsWith("n")) {
-          let t = decodeToRaw(id);
-          if (t.id) {
-            id = t.id;
-          } else {
-            id = t;
-          }
-        }
-        return id;
-      }),
+      ids: ids.split(",").map((id) => decodeToRaw(id)),
     };
     let pool = new SimplePool();
     let events = await pool.list(relays, [filter]);
+    events = await Promise.all(events.map( e => decryptIfNecessary(priv,e)))
     console.log(JSON.stringify(events, null, 2));
     pool.close(relays);
     process.exit(0);
@@ -113,15 +106,17 @@ async function main() {
     ]);
 
     let filter = {
-      kinds: kinds.split(",").map(Number),
       limit: Number(limit),
     };
-    if (authors !== "") {
-      filter.authors = authors.split(",");
+    if (kinds !== "") {
+      filter.kinds = kinds.split(",").map(Number);
     }
-
+    if (authors !== "") {
+      filter.authors = authors.split(",").map(a => decodeToRaw(a));
+    }
     let pool = new SimplePool();
     let events = await pool.list(relays, [filter]);
+    events = await Promise.all(events.map( e => decryptIfNecessary(priv,e)))
     console.log(JSON.stringify(events, null, 2));
     pool.close(relays);
     process.exit(0);
@@ -166,7 +161,7 @@ async function main() {
     event.id = getEventHash(event);
     event.sig = getSignature(event, priv);
     console.log("publishing:", JSON.stringify(event, null, 2));
-    for(let r of relays) {
+    for (let r of relays) {
       await sendBySingleRelay(r, event);
     }
   }
@@ -176,7 +171,7 @@ main();
 function timeout(ms, promise) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new Error('Operation timed out'));
+      reject(new Error("Operation timed out"));
     }, ms);
 
     promise.then(
@@ -198,7 +193,7 @@ async function sendBySingleRelay(r, e) {
   try {
     console.log(`try to publish to relay: ${r}`);
     const relay = relayInit(r);
-    await timeout(TIMEOUT_DURATION, relay.connect())
+    await timeout(TIMEOUT_DURATION, relay.connect());
     await timeout(TIMEOUT_DURATION, relay.publish(e));
     console.log(`published by relay: ${r}`);
     relay.close();
