@@ -7,6 +7,7 @@ import {
   getPublicKey,
   getEventHash,
   getSignature,
+  relayInit
 } from "nostr-tools";
 import dotenv from "dotenv";
 dotenv.config();
@@ -162,19 +163,46 @@ async function main() {
       event.tags = tags;
     }
 
-    try {
-      event.id = getEventHash(event);
-      event.sig = getSignature(event, priv);
-      let pool = new SimplePool();
-
-      // If pool.publish returns a promise, await it
-      const publishes = pool.publish(relays, event);
-      await Promise.all(publishes);
-      pool.close(relays);
-      process.exit(0);
-    } catch (error) {
-      console.error("Error:", error);
+    event.id = getEventHash(event);
+    event.sig = getSignature(event, priv);
+    console.log("publishing:", JSON.stringify(event, null, 2));
+    for(let r of relays) {
+      await sendBySingleRelay(r, event);
     }
   }
 }
 main();
+
+function timeout(ms, promise) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('Operation timed out'));
+    }, ms);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+const TIMEOUT_DURATION = 3000; // 5 seconds, adjust as needed
+
+async function sendBySingleRelay(r, e) {
+  try {
+    console.log(`try to publish to relay: ${r}`);
+    const relay = relayInit(r);
+    await timeout(TIMEOUT_DURATION, relay.connect())
+    await timeout(TIMEOUT_DURATION, relay.publish(e));
+    console.log(`published by relay: ${r}`);
+    relay.close();
+  } catch (error) {
+    console.log(`----publish error by relay ${r}:`, error);
+  }
+}
