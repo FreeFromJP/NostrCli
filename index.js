@@ -11,8 +11,8 @@ import {
   nip19,
 } from "nostr-tools";
 import dotenv from "dotenv";
-import crypto from 'node:crypto'
-globalThis.crypto = crypto
+import crypto from "node:crypto";
+globalThis.crypto = crypto;
 dotenv.config();
 
 let relays = process.env.DEFAULT_RELAYS.split(",");
@@ -49,7 +49,7 @@ async function main() {
       type: "list",
       name: "command",
       message: "Choose a command:",
-      choices: ["key", "decode", "seach_by_ids", "sample", "publish"],
+      choices: ["key", "decode", "seach_by_ids", "sample", "DMLike","publish"],
     },
   ]);
 
@@ -79,7 +79,7 @@ async function main() {
     };
     let pool = new SimplePool();
     let events = await pool.list(relays, [filter]);
-    events = await Promise.all(events.map( e => decryptIfNecessary(priv,e)))
+    events = await Promise.all(events.map((e) => decryptIfNecessary(priv, e)));
     console.log(JSON.stringify(events, null, 2));
     pool.close(relays);
     process.exit(0);
@@ -112,11 +112,58 @@ async function main() {
       filter.kinds = kinds.split(",").map(Number);
     }
     if (authors !== "") {
-      filter.authors = authors.split(",").map(a => decodeToRaw(a));
+      filter.authors = authors.split(",").map((a) => decodeToRaw(a));
     }
     let pool = new SimplePool();
     let events = await pool.list(relays, [filter]);
-    events = await Promise.all(events.map( e => decryptIfNecessary(priv,e)))
+    events = events.slice(0,limit)
+    events = await Promise.all(events.map((e) => decryptIfNecessary(priv, e)));
+    console.log(JSON.stringify(events, null, 2));
+    pool.close(relays);
+    process.exit(0);
+  } else if (command === "DMLike") {
+    const { kinds, limit, counterparty } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "kinds",
+        message: "Enter event kinds (comma-separated):",
+      },
+      {
+        type: "input",
+        name: "limit",
+        message: "Enter fetch number:",
+        validate: (input) =>
+          Number.isInteger(Number(input)) || "Please enter a valid number.",
+      },
+      {
+        type: "input",
+        name: "counterparty",
+        message: "Enter counterparty pubkey:",
+        default: "",
+      },
+    ]);
+
+    const _kinds = kinds.split(",").map(Number);
+    let filter_to_me = {
+      kinds: _kinds,
+      limit: Number(limit),
+    };
+    let filter_from_me = {
+      kinds: _kinds,
+      limit: Number(limit),
+    };
+    if (counterparty == "") {
+      counterparty = pub;
+    }
+    filter_to_me.authors = [decodeToRaw(counterparty)]
+    filter_to_me["#p"] = [pub];
+    filter_from_me.authors = [pub];
+    filter_from_me["#p"] = [decodeToRaw(counterparty)];
+    let pool = new SimplePool();
+    let events = await pool.list(relays, [filter_to_me, filter_from_me]);
+    events.sort((a,b) => a.created_at > b.created_at);
+    events = events.slice(0,limit)
+    events = await Promise.all(events.map((e) => decryptIfNecessary(priv, e)));
     console.log(JSON.stringify(events, null, 2));
     pool.close(relays);
     process.exit(0);

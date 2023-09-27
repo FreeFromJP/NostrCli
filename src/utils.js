@@ -15,19 +15,21 @@ export function decodeToRaw(s) {
   return s;
 }
 
-const KINDS_TO_BE_DECRYPTED = [4];
+const KINDS_TO_BE_DECRYPTED = [4, 1404];
 
 export async function decryptIfNecessary(prikey, event) {
   if (KINDS_TO_BE_DECRYPTED.includes(event.kind)) {
-    let pub = getPublicKey(prikey);
-    if (pub == event.pubkey) {
-      const counterPartyPubkey = event.tags.filter(t => t[0] == "p")[0][1];
-      const decryptedContent = await nip04.decrypt(
+    let myPubKey = getPublicKey(prikey);
+    const eventPubKey = event.pubkey;
+    const pTagKey = event.tags.filter((t) => t[0] == "p")[0][1];
+    if (eventPubKey == myPubKey) {
+      event.content = await nip04.decrypt(
         prikey,
         counterPartyPubkey,
         event.content
       );
-      event.content = decryptedContent;
+    } else if (pTagKey == myPubKey) {
+      event.content = await nip04.decrypt(prikey, eventPubKey, event.content);
     }
   }
   return event;
