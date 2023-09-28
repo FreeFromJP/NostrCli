@@ -1,4 +1,4 @@
-import { nip19, nip04, getPublicKey } from "nostr-tools";
+import { nip19, nip04, getPublicKey, nip44 } from "nostr-tools";
 
 export function decodeToRaw(s) {
   if (s.startsWith("nostr:")) {
@@ -6,8 +6,8 @@ export function decodeToRaw(s) {
   }
   if (s.startsWith("n")) {
     let t = nip19.decode(s).data;
-    if (t.s) {
-      s = t.s;
+    if (t.id) {
+      s = t.id;
     } else {
       s = t;
     }
@@ -32,5 +32,11 @@ export async function decryptIfNecessary(prikey, event) {
       event.content = await nip04.decrypt(prikey, eventPubKey, event.content);
     }
   }
+  return event;
+}
+
+export function unwrapGift(prikey, event) {
+  const sharedSecret = nip44.getSharedSecret(prikey, event.pubkey)
+  event.content = nip44.decrypt(sharedSecret, event.content)
   return event;
 }

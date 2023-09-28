@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import "websocket-polyfill";
 import inquirer from "inquirer";
-import { decodeToRaw, decryptIfNecessary } from "./src/utils.js";
+import { decodeToRaw, decryptIfNecessary, unwrapGift } from "./src/utils.js";
 import {
   SimplePool,
   getPublicKey,
@@ -49,7 +49,7 @@ async function main() {
       type: "list",
       name: "command",
       message: "Choose a command:",
-      choices: ["key", "decode", "seach_by_ids", "sample", "DMLike","publish"],
+      choices: ["key", "decode", "search_by_ids", "sample", "DMLike", "publish", "unwrap_gift"],
     },
   ]);
 
@@ -63,8 +63,8 @@ async function main() {
     ]);
     console.log(decodeToRaw(bech32));
   } else if (command === "key") {
-    console.log(nip19.npubEncode(pub));
-  } else if (command === "seach_by_ids") {
+    console.log(nip19.npubEncode(pub), pub);
+  } else if (command === "search_by_ids") {
     const { ids } = await inquirer.prompt([
       {
         type: "input",
@@ -80,6 +80,7 @@ async function main() {
     let pool = new SimplePool();
     let events = await pool.list(relays, [filter]);
     events = await Promise.all(events.map((e) => decryptIfNecessary(priv, e)));
+
     console.log(JSON.stringify(events, null, 2));
     pool.close(relays);
     process.exit(0);
@@ -116,7 +117,7 @@ async function main() {
     }
     let pool = new SimplePool();
     let events = await pool.list(relays, [filter]);
-    events = events.slice(0,limit)
+    events = events.slice(0, limit);
     events = await Promise.all(events.map((e) => decryptIfNecessary(priv, e)));
     console.log(JSON.stringify(events, null, 2));
     pool.close(relays);
@@ -155,14 +156,14 @@ async function main() {
     if (counterparty == "") {
       counterparty = pub;
     }
-    filter_to_me.authors = [decodeToRaw(counterparty)]
+    filter_to_me.authors = [decodeToRaw(counterparty)];
     filter_to_me["#p"] = [pub];
     filter_from_me.authors = [pub];
     filter_from_me["#p"] = [decodeToRaw(counterparty)];
     let pool = new SimplePool();
     let events = await pool.list(relays, [filter_to_me, filter_from_me]);
-    events.sort((a,b) => a.created_at > b.created_at);
-    events = events.slice(0,limit)
+    events.sort((a, b) => a.created_at > b.created_at);
+    events = events.slice(0, limit);
     events = await Promise.all(events.map((e) => decryptIfNecessary(priv, e)));
     console.log(JSON.stringify(events, null, 2));
     pool.close(relays);
@@ -211,6 +212,30 @@ async function main() {
     for (let r of relays) {
       await sendBySingleRelay(r, event);
     }
+  } else if (command === "unwrap_gift") {
+    const { ids } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "ids",
+        message: "Enter event ids (any format will do):",
+        default: "",
+      },
+    ]);
+
+    let filter = {
+      ids: ids.split(",").map((id) => decodeToRaw(id)),
+    };
+    let pool = new SimplePool();
+    let events = await pool.list(relays, [filter]);
+    events = events.map(e => unwrapGift(priv, e))
+    for(let e of events){
+      console.log("<<<",JSON.stringify(e, null, 2));
+      const inner = JSON.parse(e.content)
+      console.log(">>>", unwrapGift(priv, inner));
+      console.log("-------------------------------------------------")
+    }
+    pool.close(relays);
+    process.exit(0);
   }
 }
 main();
