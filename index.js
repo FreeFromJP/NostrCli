@@ -229,7 +229,27 @@ async function main() {
     for (let r of relays) {
       await sendBySingleRelay(r, event);
     }
-  } else if (command === "unwrap_gift") {
+  } else if(command === "republish"){
+    const {id} = await inquirer.prompt([
+      {
+        type: "input",
+        name: "id",
+        message: "Enter event id you want republish:",
+        default: "",
+      }
+    ])
+    let eventId = decodeToRaw(id);
+    let pool = new SimplePool();
+    let events = await pool.list(relays, [{ids: [eventId]}]);
+    let onlyEvent;
+    if(events.length > 0) {
+      onlyEvent = events[0];
+    }
+    for (let r of relays) {
+      await sendBySingleRelay(r, onlyEvent);
+    }
+  }
+  else if (command === "unwrap_gift") {
     const { ids } = await inquirer.prompt([
       {
         type: "input",
