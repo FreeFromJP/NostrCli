@@ -25,7 +25,7 @@ export async function decryptIfNecessary(prikey, event) {
     if (eventPubKey == myPubKey) {
       event.content = await nip04.decrypt(
         prikey,
-        counterPartyPubkey,
+        pTagKey,
         event.content
       );
     } else if (pTagKey == myPubKey) {
