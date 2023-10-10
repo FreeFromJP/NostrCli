@@ -40,3 +40,22 @@ export function unwrapGift(prikey, event) {
   event.content = nip44.decrypt(sharedSecret, event.content)
   return event;
 }
+
+export function logEvents(events) {
+  events.forEach(element => {
+    element.created_at = formatDate(element.created_at)
+  });
+  console.log(JSON.stringify(events, null, 2));
+}
+
+function formatDate(timestamp) {
+  const date = new Date(timestamp * 1000); // Convert to milliseconds
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed in JavaScript
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}

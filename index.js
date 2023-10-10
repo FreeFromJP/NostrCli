@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import "websocket-polyfill";
 import inquirer from "inquirer";
-import { decodeToRaw, decryptIfNecessary, unwrapGift } from "./src/utils.js";
+import { decodeToRaw, decryptIfNecessary, unwrapGift, logEvents} from "./src/utils.js";
 import {
   SimplePool,
   getPublicKey,
@@ -49,7 +49,7 @@ async function main() {
       type: "list",
       name: "command",
       message: "Choose a command:",
-      choices: ["key", "decode", "search_by_ids", "sample", "DMLike", "publish", "unwrap_gift"],
+      choices: ["key", "decode", "encode", "search_by_ids", "sample", "DMLike", "publish", "unwrap_gift"],
     },
   ]);
 
@@ -62,6 +62,15 @@ async function main() {
       },
     ]);
     console.log(decodeToRaw(bech32));
+  } else if (command === "encode") {
+    const { id } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "id",
+        message: "Enter the raw id",
+      },
+    ]);
+    console.log(nip19.neventEncode({"id": id}))
   } else if (command === "key") {
     console.log(nip19.npubEncode(pub), pub);
   } else if (command === "search_by_ids") {
@@ -81,7 +90,7 @@ async function main() {
     let events = await pool.list(relays, [filter]);
     events = await Promise.all(events.map((e) => decryptIfNecessary(priv, e)));
 
-    console.log(JSON.stringify(events, null, 2));
+    logEvents(events);
     pool.close(relays);
     process.exit(0);
   } else if (command === "sample") {
@@ -136,7 +145,7 @@ async function main() {
     events = events.slice(0, limit);
     events.sort((a, b) => a.created_at - b.created_at);
     events = await Promise.all(events.map((e) => decryptIfNecessary(priv, e)));
-    console.log(JSON.stringify(events, null, 2));
+    logEvents(events);
     pool.close(relays);
     process.exit(0);
   } else if (command === "DMLike") {
@@ -182,7 +191,7 @@ async function main() {
     events.sort((a, b) => a.created_at - b.created_at);
     events = events.slice(0, limit);
     events = await Promise.all(events.map((e) => decryptIfNecessary(priv, e)));
-    console.log(JSON.stringify(events, null, 2));
+    logEvents(events);
     pool.close(relays);
     process.exit(0);
   } else if (command === "publish") {
