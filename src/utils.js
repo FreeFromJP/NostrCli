@@ -1,4 +1,5 @@
-import { nip19, nip04, getPublicKey, nip44 } from "nostr-tools";
+import { nip19, nip04, getPublicKey } from "nostr-tools";
+import inquirer from "inquirer";
 
 export function decodeToRaw(s) {
   if (s.startsWith("nostr:")) {
@@ -35,12 +36,6 @@ export async function decryptIfNecessary(prikey, event) {
   return event;
 }
 
-export function unwrapGift(prikey, event) {
-  const sharedSecret = nip44.getSharedSecret(prikey, event.pubkey)
-  event.content = nip44.decrypt(sharedSecret, event.content)
-  return event;
-}
-
 export function logEvents(events) {
   events.forEach(element => {
     element.created_at = formatDate(element.created_at)
@@ -58,4 +53,47 @@ function formatDate(timestamp) {
   const seconds = String(date.getSeconds()).padStart(2, '0');
   
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+export async function getTags(tags = []) {
+  const { tag, addAnother } = await inquirer.prompt([
+    {
+      type: "input",
+      name: "tag",
+      message: "Enter a tag:",
+    },
+    {
+      type: "confirm",
+      name: "addAnother",
+      message: "Would you like to add another tag?",
+      default: false,
+    },
+  ]);
+
+  tags.push(tag.split(","));
+
+  if (addAnother) {
+    return getTags(tags);
+  } else {
+    return tags;
+  }
+}
+
+export function timeout(ms, promise) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("Operation timed out"));
+    }, ms);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
 }
