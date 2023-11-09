@@ -3,6 +3,7 @@ import { json2ReplaceableEvents, publishAllOrFail } from "./src/functions/publis
 import {createHash} from "sha256-uint8array";
 import dotenv from "dotenv";
 import { Keys } from "./src/classes/Keys.js";
+import { deriveKey } from "./src/classes/Keys.js";
 dotenv.config();
 
 let priv = process.env.PRIVATE_KEY;
@@ -10,58 +11,26 @@ let relays = process.env.DEFAULT_RELAYS.split(",");
 
 async function main() {
 
-    //object for testing
+    // object for testing
     const data2Store = {
-        _id: '6548ecfaf4bdafcd149fad98',
-        index: 0,
-        guid: 'c1763c47-8777-47bd-87bc-7b4a81918962',
-        isActive: true,
-        balance: '$3,019.70',
-        picture: 'http://placehold.it/32x32',
-        age: 30,
-        eyeColor: 'green',
-        name: 'Guerrero Nash',
-        gender: 'male',
-        company: 'FARMAGE',
-        email: 'guerreronash@farmage.com',
-        phone: '+1 (935) 583-2501',
-        address: '487 Dahlgreen Place, Enlow, Michigan, 908',
-        about:
-          'Enim sint occaecat nulla consequat id tempor nisi pariatur id dolore reprehenderit. Nulla excepteur nostrud magna fugiat cillum aute nostrud eiusmod sunt officia esse. Officia tempor occaecat dolor mollit cupidatat qui ex fugiat sunt dolore qui ea duis aute. Non ipsum aliqua veniam eu consectetur occaecat sit minim dolore deserunt incididunt aliqua. Ipsum in duis ut aliquip ad tempor laborum velit commodo. Consequat excepteur adipisicing ad Lorem in elit incididunt do nostrud ex laborum occaecat reprehenderit. Elit sunt laboris nisi ut pariatur aute tempor est officia labore consequat ad Lorem anim.\r\n',
-        registered: '2018-11-27T11:52:34 -09:00',
-        latitude: 40.237423,
-        longitude: 60.913071,
-        tags: ['Lorem', 'labore', 'eiusmod', 'amet', 'proident', 'minim', 'sint'],
-        friends: [
-          {
-            id: 0,
-            name: 'Cole Buckner',
-          },
-          {
-            id: 1,
-            name: 'Barr Harris',
-          },
-          {
-            id: 2,
-            name: 'Osborne Casey',
-          },
-        ],
-        greeting: 'Hello, Guerrero Nash! You have 6 unread messages.',
-        favoriteFruit: 'strawberry',
-      };
-
-      const text = "this is a secret";
-      const secret = createHash().update(text).digest();
-      const keys = new Keys()
+        "BASE_URL": "https://devapi.freefrom.space",
+        "NOSTR_SEARCH": "https://search.freefrom.space/api/v1/search",
+        "NOSTR_PROFILE_SEARCH": "https://search.freefrom.space/api/v1/search/profile",
+        "CHAT_CALL_URL": "wss://chat-dev.freefrom.space/ws",
+        "FIREBASE_HOST": "https://fb.freefrom.space",
+        "BASE_CMSURL": "https://cms.freefrom.space"
+      }
 
 
+      const org_secret = "53a7694c295f4d84efc8af43744603fbd26bf1d8a108a850904de1f8a4d97146"
+    const secret = deriveKey(org_secret,"670d8e8a1e73af72a4e7dc5c5c449beaa0f058dfc608bb730e538ca968aa4782","v1")
+    console.log(secret)
 
-      const events = json2ReplaceableEvents(data2Store, keys, secret, "d_test", 2);
+      const keys = new Keys("df8ac75da9c96fb86ef6e799307893687c5be79ae3b3bf765059ebd3a33474b0")
+
+      const events = json2ReplaceableEvents(data2Store, keys, secret, "670d8e8a1e73af72a4e7dc5c5c449beaa0f058dfc608bb730e538ca968aa4782", 1);
       //set publish in sequence
       await publishAllOrFail(events, relays, keys)
-
-      
-
 
 
 }

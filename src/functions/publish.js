@@ -73,7 +73,7 @@ export function json2ReplaceableEvents(
     const event = new BaseEvent();
     event.kind = KnownEventKind.APPLICATION_SPECIFIC_DATA;
     event.content = JSON.stringify({
-      data: splitJsonEncrypted(jsonObject, secret, shares),
+      data: splitJsonEncrypted(jsonObject, secret, shares)[0],
     });
     event.tags = [["d", dTag]];
     event.signByKey2Self(sender);

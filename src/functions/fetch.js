@@ -61,6 +61,10 @@ export async function sample(kinds, limit, authors, relays, priv) {
       pool.close(relays);
 }
 
+async function _get_by_id(id, relays) {
+    
+}
+
 export async function search_by_ids(ids, relays, priv) {
     let filter = {
         ids: ids.split(",").map((id) => decodeToRaw(id)),
@@ -73,6 +77,10 @@ export async function search_by_ids(ids, relays, priv) {
 
       logEvents(events);
       pool.close(relays);
+}
+
+export async function fetchJsonFromRelay(indexEventId, relays, secret) {
+
 }
 
 
