@@ -4,6 +4,7 @@ import { decryptIfNecessary } from "../utils/utils.js";
 import inquirer from "inquirer";
 import { decodeToRaw } from "../utils/utils.js";
 import { getTags } from "../utils/utils.js";
+import { reassembleJsonDecrypted } from "../utils/json.js";
 
 function transformTags(tags) {
     const output = {};
@@ -73,3 +74,11 @@ export async function search_by_ids(ids, relays, priv) {
       logEvents(events);
       pool.close(relays);
 }
+
+
+export function events2Json(events, secret) {
+    //assume the events are aligned properly
+    const data = events.map(e => JSON.parse(e.content).data);
+    return reassembleJsonDecrypted(data, secret);
+  }
+  

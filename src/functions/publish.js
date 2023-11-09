@@ -15,7 +15,7 @@ async function sendBySingleRelay(r, e) {
     const relay = relayInit(r);
     await timeout(TIMEOUT_DURATION, relay.connect());
     await timeout(TIMEOUT_DURATION, relay.publish(e));
-    console.log(`published by relay: ${r}`);
+    console.log(`${e.id} has been published by relay: ${r}`);
     relay.close();
   } catch (error) {
     console.log(`----publish error by relay ${r}:`, error);
@@ -27,7 +27,7 @@ export async function publish(kind, content, addTags, relays, priv) {
   if (addTags) {
     tags = await getTags();
   }
-  let event = new BaseEvent()
+  let event = new BaseEvent();
   event.content = content;
   event.kind = Number.parseInt(kind);
   if (tags.length > 0) {
@@ -37,6 +37,13 @@ export async function publish(kind, content, addTags, relays, priv) {
   console.log("publishing:", JSON.stringify(event, null, 2));
   for (let r of relays) {
     await sendBySingleRelay(r, event);
+  }
+}
+
+export async function publishAllOrFail(events, relays, priv) {
+  console.log("publishing:", JSON.stringify(events, null, 2));
+  for (let r of relays) {
+    await Promise.all(events.map((e) => sendBySingleRelay(r, e)));
   }
 }
 
@@ -69,9 +76,6 @@ export function json2ReplaceableEvents(
       data: splitJsonEncrypted(jsonObject, secret, shares),
     });
     event.tags = [["d", dTag]];
-
-
-
     event.signByKey2Self(sender);
     events.push(event);
   } else {
@@ -101,6 +105,23 @@ export function json2ReplaceableEvents(
   return events;
 }
 
-// Assuming BaseEvent, KnownEventKind, splitJsonEncrypted, and Keys are defined elsewhere
-
-// todo move code from project to this console
+export async function publishJSON2Relay(
+  jsonObject,
+  sender,
+  secret,
+  dTag,
+  relays,
+  shares = 1
+) {
+  const events = json2ReplaceableEvents(
+    jsonObject,
+    sender,
+    secret,
+    dTag,
+    shares
+  );
+  console.log(
+    `publishing json data 2 relays with index event id: ${events[0].id}`
+  );
+  await publishAllOrFail(events, relays, sender);
+}

@@ -1,10 +1,12 @@
-import { json2ReplaceableEvents } from "./src/functions/publish.js";
+import "websocket-polyfill";
+import { json2ReplaceableEvents, publishAllOrFail } from "./src/functions/publish.js";
 import {createHash} from "sha256-uint8array";
 import dotenv from "dotenv";
 import { Keys } from "./src/classes/Keys.js";
 dotenv.config();
 
 let priv = process.env.PRIVATE_KEY;
+let relays = process.env.DEFAULT_RELAYS.split(",");
 
 async function main() {
 
@@ -55,7 +57,10 @@ async function main() {
 
 
       const events = json2ReplaceableEvents(data2Store, keys, secret, "d_test", 2);
-      console.log(events);
+      //set publish in sequence
+      await publishAllOrFail(events, relays, keys)
+
+      
 
 
 
