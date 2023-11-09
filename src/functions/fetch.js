@@ -1,7 +1,9 @@
 import { SimplePool } from "nostr-tools";
-import { logEvents } from "../utils.js";
-import { decryptIfNecessary } from "../utils.js";
+import { logEvents } from "../utils/utils.js";
+import { decryptIfNecessary } from "../utils/utils.js";
 import inquirer from "inquirer";
+import { decodeToRaw } from "../utils/utils.js";
+import { getTags } from "../utils/utils.js";
 
 function transformTags(tags) {
     const output = {};

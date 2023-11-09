@@ -1,6 +1,6 @@
 import { SimplePool } from "nostr-tools";
-import { logEvents } from "../utils.js";
-import { decryptIfNecessary } from "../utils.js";
+import { logEvents } from "../utils/utils.js";
+import { decryptIfNecessary } from "../utils/utils.js";
 
 export async function dm_like (kinds, limit, counterparty, relays) {
     const _kinds = kinds.split(",").map(Number);

@@ -1,6 +1,7 @@
-import { getTags, timeout } from "../utils.js";
+import { getTags, timeout } from "../utils/utils.js";
 import { relayInit } from "nostr-tools";
 import { getEventHash, getSignature } from "nostr-tools";
+import { decodeToRaw } from "../utils/utils.js";
 
 const TIMEOUT_DURATION = 3000; // 5 seconds, adjust as needed
 
@@ -54,3 +55,46 @@ export async function republish(id, relays) {
         }
 }
 
+
+export function json2ReplaceableEvents(jsonObject, sender, secret, dTag, shares = 1) {
+    let events = [];
+    if (shares === 1) {
+      // when only one share is needed, we can put the whole data into data field
+      const event = new BaseEvent();
+      event.kind = KnownEventKind.APPLICATION_SPECIFIC_DATA;
+      event.content = JSON.stringify({
+        data: splitJsonEncrypted(jsonObject, secret, shares),
+      });
+      event.tags = [['d', dTag]];
+      event.signByKey2Self(sender);
+      events.push(event);
+    } else {
+      const allShares = splitJsonEncrypted(jsonObject, secret, shares);
+      const share1 = allShares[0];
+      const shareRest = allShares.splice(1);
+      // prepare the events of shareRest
+      const shareRestEvents = shareRest.map(data => {
+        const event = new BaseEvent();
+        event.kind = KnownEventKind.STORAGE;
+        event.content = JSON.stringify({
+          data: data,
+        });
+        event.signByKey(new Keys());
+        return event;
+      });
+      const share1Event = new BaseEvent();
+      share1Event.kind = KnownEventKind.APPLICATION_SPECIFIC_DATA;
+      share1Event.content = JSON.stringify({
+        data: share1,
+        ref: shareRestEvents.map(e => e.id),
+      });
+      share1Event.tags = [['d', dTag]];
+      share1Event.signByKey2Self(sender);
+      events = [share1Event, ...shareRestEvents];
+    }
+    return events;
+  }
+  
+  // Assuming BaseEvent, KnownEventKind, splitJsonEncrypted, and Keys are defined elsewhere
+  
+  // todo move code from project to this console

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import "websocket-polyfill";
 import inquirer from "inquirer";
-import { decodeToRaw } from "./src/utils.js";
+import { decodeToRaw } from "./src/utils/utils.js";
 
 import { unwrap_gift } from "./src/functions/giftWrap.js";
 import { dm_like } from "./src/functions/dm.js";
