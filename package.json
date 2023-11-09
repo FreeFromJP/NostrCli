@@ -13,6 +13,7 @@
     "dotenv": "^16.3.1",
     "inquirer": "^9.2.10",
     "nostr-tools": "^1.14.2",
+    "sha256-uint8array": "^0.10.7",
     "websocket-polyfill": "^0.0.3"
   },
   "type": "module",

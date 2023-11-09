@@ -147,7 +147,7 @@ async function main() {
             default: false,
           },
         ]);
-        await publish(kind, content, addTags, relays);
+        await publish(kind, content, addTags, relays, priv);
         break;
       }
       case "republish": {
