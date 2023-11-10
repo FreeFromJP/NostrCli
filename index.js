@@ -10,6 +10,7 @@ import dotenv from "dotenv";
 import crypto from "node:crypto";
 import { sample, search_by_ids } from "./src/functions/fetch.js";
 import { publish, republish } from "./src/functions/publish.js";
+import { Keys } from "./src/classes/Keys.js";
 globalThis.crypto = crypto;
 dotenv.config();
 
@@ -25,6 +26,7 @@ async function main() {
       message: "Choose a command:",
       choices: [
         "key",
+        "random_key",
         "decode",
         "encode",
         "search_by_ids",
@@ -61,6 +63,10 @@ async function main() {
       case "key":
         console.log(nip19.npubEncode(pub), pub);
         break;
+      case "random_key": {
+        const randomKey = new Keys();
+        console.log(`priv: ${randomKey.privkeyRaw}, pub: ${randomKey.pubkeyRaw}`);
+      }
       case "search_by_ids": {
         const { ids } = await inquirer.prompt([
           {
