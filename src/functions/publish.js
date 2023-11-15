@@ -1,5 +1,5 @@
 import { getTags, timeout } from "../utils/utils.js";
-import { relayInit } from "nostr-tools";
+import { relayInit, SimplePool } from "nostr-tools";
 import { getEventHash, getSignature } from "nostr-tools";
 import { decodeToRaw } from "../utils/utils.js";
 import { splitJsonEncrypted } from "../utils/json.js";
@@ -47,7 +47,7 @@ export async function publishAllOrFail(events, relays, priv) {
   }
 }
 
-export async function republish(id, relays) {
+export async function boardcast(id, relays) {
   let eventId = decodeToRaw(id);
   let pool = new SimplePool();
   let events = await pool.list(relays, [{ ids: [eventId] }]);

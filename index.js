@@ -9,7 +9,7 @@ import { getPublicKey, nip19 } from "nostr-tools";
 import dotenv from "dotenv";
 import crypto from "node:crypto";
 import { sample, search_by_ids } from "./src/functions/fetch.js";
-import { publish, republish } from "./src/functions/publish.js";
+import { publish, boardcast } from "./src/functions/publish.js";
 import { Keys } from "./src/classes/Keys.js";
 globalThis.crypto = crypto;
 dotenv.config();
@@ -33,6 +33,7 @@ async function main() {
         "sample",
         "dm_like",
         "publish",
+        "boardcast",
         "unwrap_gift",
       ],
     },
@@ -156,16 +157,16 @@ async function main() {
         await publish(kind, content, addTags, relays, priv);
         break;
       }
-      case "republish": {
+      case "boardcast": {
         const { id } = await inquirer.prompt([
           {
             type: "input",
             name: "id",
-            message: "Enter event id you want republish:",
+            message: "Enter event id you want boardcast:",
             default: "",
           },
         ]);
-        await republish(id, relays);
+        await boardcast(id, relays);
         break;
       }
       case "unwrap_gift": {
