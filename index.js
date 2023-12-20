@@ -8,7 +8,7 @@ import { dm_like } from "./src/functions/dm.js";
 import { getPublicKey, nip19 } from "nostr-tools";
 import dotenv from "dotenv";
 import crypto from "node:crypto";
-import { sample, search_by_ids } from "./src/functions/fetch.js";
+import { fetch_by_filters, sample, search_by_ids } from "./src/functions/fetch.js";
 import { publish, boardcast } from "./src/functions/publish.js";
 import { Keys } from "./src/classes/Keys.js";
 globalThis.crypto = crypto;
@@ -30,6 +30,7 @@ async function main() {
         "decode",
         "encode",
         "search_by_ids",
+        "fetch_by_filters",
         "sample",
         "dm_like",
         "publish",
@@ -79,6 +80,17 @@ async function main() {
         ]);
         await search_by_ids(ids, relays, priv);
         break;
+      }
+      case "fetch_by_filters": {
+        const { names } = await inquirer.prompt([
+          {
+            type: "input",
+            name: "names",
+            message: "Enter filter names in filters file:",
+            default: "",
+          },
+        ]);
+        await fetch_by_filters(names, relays);
       }
       case "sample": {
         const { kinds, limit, authors } = await inquirer.prompt([
