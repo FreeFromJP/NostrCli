@@ -6,6 +6,7 @@ import { decodeToRaw } from "../utils/utils.js";
 import { getTags } from "../utils/utils.js";
 import { reassembleJsonDecrypted } from "../utils/json.js";
 import { filters } from "../data/filter.js";
+import { nip19 } from "nostr-tools";
 
 function transformTags(tags) {
   const output = {};
@@ -93,4 +94,30 @@ export async function fetch_by_filters(filterNames, relays) {
   logEvents(events);
   console.log("total events:", events.length);
   pool.close(relays);
+}
+
+export async function fetch_user_following(relays, publicKey) {
+  let filter = {
+    kinds: [3],
+    authors: [decodeToRaw(publicKey)],
+  };
+  let pool = new SimplePool();
+  let events = await pool.list(relays, [filter]);
+  let followingsSet = new Set();
+  for (let e of events) {
+    try {
+      let decryptedEvent = await decryptIfNecessary(publicKey, e);
+      let tags = decryptedEvent.tags;
+      for (let tag of tags) {
+        if (tag[0] === 'p') {
+          let npub = nip19.npubEncode(tag[1]);
+          followingsSet.add(npub);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to parse event:', e, 'Error:', error);
+    }
+  }
+  pool.close(relays);
+  return Array.from(followingsSet);
 }
