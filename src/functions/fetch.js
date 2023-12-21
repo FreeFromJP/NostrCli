@@ -103,21 +103,23 @@ export async function fetch_user_following(relays, publicKey) {
   };
   let pool = new SimplePool();
   let events = await pool.list(relays, [filter]);
-  let followingsSet = new Set();
-  for (let e of events) {
-    try {
-      let decryptedEvent = await decryptIfNecessary(publicKey, e);
-      let tags = decryptedEvent.tags;
-      for (let tag of tags) {
-        if (tag[0] === 'p') {
-          let npub = nip19.npubEncode(tag[1]);
-          followingsSet.add(npub);
-        }
+  // Sort events by created_at in descending order
+  events.sort((a, b) => b.created_at - a.created_at);
+  // Only keep the latest event
+  let latestEvent = events[0];
+  let followingsArray = [];
+  try {
+    let decryptedEvent = await decryptIfNecessary(publicKey, latestEvent);
+    let tags = decryptedEvent.tags;
+    for (let tag of tags) {
+      if (tag[0] === 'p') {
+        let npub = nip19.npubEncode(tag[1]);
+        followingsArray.push(npub);
       }
-    } catch (error) {
-      console.error('Failed to parse event:', e, 'Error:', error);
     }
+  } catch (error) {
+    console.error('Failed to parse event:', latestEvent, 'Error:', error);
   }
   pool.close(relays);
-  return Array.from(followingsSet);
+  return followingsArray;
 }
