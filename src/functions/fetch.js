@@ -109,17 +109,16 @@ export async function fetch_user_following(relays, publicKey) {
   let latestEvent = events[0];
   let followingsArray = [];
   try {
-    let decryptedEvent = await decryptIfNecessary(publicKey, latestEvent);
-    let tags = decryptedEvent.tags;
-    for (let tag of tags) {
-      if (tag[0] === 'p') {
-        let npub = nip19.npubEncode(tag[1]);
+    for (let [key, value] of latestEvent.tags) {
+      if (key === 'p') {
+        let npub = nip19.npubEncode(value);
         followingsArray.push(npub);
       }
     }
   } catch (error) {
     console.error('Failed to parse event:', latestEvent, 'Error:', error);
+  } finally {
+    pool.close(relays);
   }
-  pool.close(relays);
   return followingsArray;
 }
