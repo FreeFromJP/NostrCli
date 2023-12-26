@@ -22,5 +22,18 @@
   "type": "module",
   "bin": {
     "nostr": "./index.js"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0"
+  },
+  "lint-staged": {
+    "*.js": "eslint --fix"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
   }
 }

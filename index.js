@@ -8,10 +8,15 @@ import { dm_like } from "./src/functions/dm.js";
 import { getPublicKey, nip19 } from "nostr-tools";
 import dotenv from "dotenv";
 import crypto from "node:crypto";
-import { fetch_by_filters, sample, search_by_ids } from "./src/functions/fetch.js";
+import {
+  fetch_by_filters,
+  fetch_user_following,
+  sample,
+  search_by_ids
+} from "./src/functions/fetch.js";
 import { publish, boardcast } from "./src/functions/publish.js";
 import { Keys } from "./src/classes/Keys.js";
-globalThis.crypto = crypto;
+//globalThis.crypto = crypto;
 dotenv.config();
 
 let relays = process.env.DEFAULT_RELAYS.split(",");
@@ -28,7 +33,9 @@ async function main() {
         "key",
         "random_key",
         "decode",
-        "encode",
+        "encodeEvent",
+        "encodePublicKey",
+        "encodeSecretKey",
         "search_by_ids",
         "fetch_by_filters",
         "sample",
@@ -36,6 +43,7 @@ async function main() {
         "publish",
         "boardcast",
         "unwrap_gift",
+        "get_user_following_publicKeys",
       ],
     },
   ]);
@@ -52,7 +60,7 @@ async function main() {
         ]);
         console.log(decodeToRaw(bech32));
         break;
-      case "encode":
+      case "encodeEvent":
         const { id } = await inquirer.prompt([
           {
             type: "input",
@@ -62,12 +70,33 @@ async function main() {
         ]);
         console.log(nip19.neventEncode({ id: id }));
         break;
+      case "encodePublicKey":
+        const { pubKey } = await inquirer.prompt([
+          {
+            type: "input",
+            name: "pubKey",
+            message: "Enter the raw pubkey",
+          },
+        ]);
+        console.log(nip19.npubEncode(pubKey));
+        break;
+      case "encodeSecretKey":
+        const { secKey } = await inquirer.prompt([
+          {
+            type: "input",
+            name: "secKey",
+            message: "Enter the raw seckey",
+          },
+        ]);
+        console.log(nip19.nsecEncode(secKey));
+        break;
       case "key":
         console.log(nip19.npubEncode(pub), pub);
         break;
       case "random_key": {
         const randomKey = new Keys();
         console.log(`priv: ${randomKey.privkeyRaw}, pub: ${randomKey.pubkeyRaw}`);
+        break;
       }
       case "search_by_ids": {
         const { ids } = await inquirer.prompt([
@@ -191,6 +220,19 @@ async function main() {
           },
         ]);
         await unwrap_gift(ids, relays);
+        break;
+      }
+      case "get_user_following_publicKeys": {
+        const { pubKey } = await inquirer.prompt([
+          {
+            type: "input",
+            name: "pubKey",
+            message: "plz enter your publicKey:",
+            default: "",
+          },
+        ]);
+        const following = await fetch_user_following(relays, pubKey);
+        console.log(following);
         break;
       }
       default:
