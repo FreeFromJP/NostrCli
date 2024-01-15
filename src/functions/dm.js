@@ -1,8 +1,9 @@
 import { SimplePool } from "nostr-tools";
 import { logEvents } from "../utils/utils.js";
-import { decryptIfNecessary } from "../utils/utils.js";
+import { decryptIfNecessary } from "../utils/utils.js"
+import { decodeToRaw } from "../utils/utils.js";
 
-export async function dm_like (kinds, limit, counterparty, relays) {
+export async function dm_like (kinds, limit, pub, priv, counterparty, relays) {
     const _kinds = kinds.split(",").map(Number);
         let filter_to_me = {
           kinds: _kinds,

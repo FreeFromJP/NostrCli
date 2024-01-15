@@ -176,7 +176,7 @@ async function main() {
           },
         ]);
 
-        await dm_like(kinds, limit, counterparty, relays);
+        await dm_like(kinds, limit, pub, priv, counterparty, relays);
         break;
       }
       case "event_adoption": {
