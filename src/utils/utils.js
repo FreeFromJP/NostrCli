@@ -41,9 +41,10 @@ export function logEvents(events) {
     element.created_at = formatDate(element.created_at)
   });
   console.log(JSON.stringify(events, null, 2));
+  console.log("total events number:", events.length)
 }
 
-function formatDate(timestamp) {
+export function formatDate(timestamp) {
   const date = new Date(timestamp * 1000); // Convert to milliseconds
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed in JavaScript

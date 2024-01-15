@@ -8,11 +8,14 @@ import { dm_like } from "./src/functions/dm.js";
 import { getPublicKey, nip19 } from "nostr-tools";
 import dotenv from "dotenv";
 import crypto from "node:crypto";
+globalThis.crypto = crypto;
 import {
   fetch_by_filters,
   fetch_user_following,
   sample,
-  search_by_ids
+  search_by_ids,
+  query_event_adoption,
+  analysis_chats,
 } from "./src/functions/fetch.js";
 import { publish, boardcast } from "./src/functions/publish.js";
 import { Keys } from "./src/classes/Keys.js";
@@ -40,6 +43,8 @@ async function main() {
         "fetch_by_filters",
         "sample",
         "dm_like",
+        "event_adoption",
+        "chat_adoption",
         "publish",
         "boardcast",
         "unwrap_gift",
@@ -95,7 +100,9 @@ async function main() {
         break;
       case "random_key": {
         const randomKey = new Keys();
-        console.log(`priv: ${randomKey.privkeyRaw}, pub: ${randomKey.pubkeyRaw}`);
+        console.log(
+          `priv: ${randomKey.privkeyRaw}, pub: ${randomKey.pubkeyRaw}`
+        );
         break;
       }
       case "search_by_ids": {
@@ -170,6 +177,38 @@ async function main() {
         ]);
 
         await dm_like(kinds, limit, counterparty, relays);
+        break;
+      }
+      case "event_adoption": {
+        const { eventId } = await inquirer.prompt([
+          {
+            type: "input",
+            name: "eventId",
+            message: "Enter event id:",
+          },
+        ]);
+        await query_event_adoption(relays, eventId);
+        break;
+      }
+      case "chat_adoption": {
+        const { from, to, limit } = await inquirer.prompt([
+          {
+            type: "input",
+            name: "from",
+            message: "from:",
+          },
+          {
+            type: "input",
+            name: "to",
+            message: "to:",
+          },
+          {
+            type: "input",
+            name: "limit",
+            message: "imit:",
+          },
+        ]);
+        await analysis_chats(relays, from, to, limit);
         break;
       }
       case "publish": {

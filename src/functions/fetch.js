@@ -7,6 +7,7 @@ import { getTags } from "../utils/utils.js";
 import { reassembleJsonDecrypted } from "../utils/json.js";
 import { filters } from "../data/filter.js";
 import { nip19 } from "nostr-tools";
+import { formatDate } from "../utils/utils.js";
 
 function transformTags(tags) {
   const output = {};
@@ -24,7 +25,6 @@ function transformTags(tags) {
 
   return output;
 }
-
 
 export async function sample(kinds, limit, authors, relays, priv) {
   let filter = {
@@ -56,9 +56,7 @@ export async function sample(kinds, limit, authors, relays, priv) {
   let events = await pool.list(relays, [filter]);
   events = events.slice(0, limit);
   events.sort((a, b) => a.created_at - b.created_at);
-  events = await Promise.all(
-    events.map((e) => decryptIfNecessary(priv, e))
-  );
+  events = await Promise.all(events.map((e) => decryptIfNecessary(priv, e)));
   logEvents(events);
   pool.close(relays);
 }
@@ -69,26 +67,22 @@ export async function search_by_ids(ids, relays, priv) {
   };
   let pool = new SimplePool();
   let events = await pool.list(relays, [filter]);
-  events = await Promise.all(
-    events.map((e) => decryptIfNecessary(priv, e))
-  );
+  events = await Promise.all(events.map((e) => decryptIfNecessary(priv, e)));
 
   logEvents(events);
   pool.close(relays);
 }
 
-export async function fetchJsonFromRelay(indexEventId, relays, secret) {
-
-}
+export async function fetchJsonFromRelay(indexEventId, relays, secret) {}
 
 export function events2Json(events, secret) {
   //assume the events are aligned properly
-  const data = events.map(e => JSON.parse(e.content).data);
+  const data = events.map((e) => JSON.parse(e.content).data);
   return reassembleJsonDecrypted(data, secret);
 }
 
 export async function fetch_by_filters(filterNames, relays) {
-  let fs = filterNames.split(",").map(name => filters[name]);
+  let fs = filterNames.split(",").map((name) => filters[name]);
   let pool = new SimplePool();
   let events = await pool.list(relays, fs);
   logEvents(events);
@@ -110,15 +104,50 @@ export async function fetch_user_following(relays, publicKey) {
   let followingsArray = [];
   try {
     for (let [key, value] of latestEvent.tags) {
-      if (key === 'p') {
+      if (key === "p") {
         let npub = nip19.npubEncode(value);
         followingsArray.push(npub);
       }
     }
   } catch (error) {
-    console.error('Failed to parse event:', latestEvent, 'Error:', error);
+    console.error("Failed to parse event:", latestEvent, "Error:", error);
   } finally {
     pool.close(relays);
   }
   return followingsArray;
+}
+
+export async function query_event_adoption(relays, eventId) {
+  let filter = {
+    ids: [eventId],
+  };
+  let pool = new SimplePool({ seenOnEnabled: true });
+  await pool.list(relays, [filter]);
+  console.log(pool.seenOn(eventId));
+}
+
+export async function analysis_chats(relays, from, to, limit) {
+  let filter_from = {
+    kinds: [4, 1404],
+    authors: [from],
+    "#p": [to],
+    limit: limit
+  };
+  let filter_to = {
+    kinds: [4, 1404],
+    authors: [to],
+    "#p": [from],
+    limit: limit
+  };
+  let pool = new SimplePool({ seenOnEnabled: true });
+  let results = await pool.list(relays, [filter_from, filter_to]);
+  results = results.sort((a, b) => a.created_at - b.created_at);
+  results.forEach(element => {
+    element.created_at = formatDate(element.created_at)
+    if(element.pubkey == from) {
+      console.log(element.created_at, ">>>", pool.seenOn(element.id))
+    }else if (element.pubkey == to ) {
+      console.log(element.created_at, "<<<", pool.seenOn(element.id))
+    }
+  });
 }
