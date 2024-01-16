@@ -131,13 +131,13 @@ export async function analysis_chats(relays, from, to, limit) {
     kinds: [4, 1404],
     authors: [from],
     "#p": [to],
-    limit: limit
+    limit: Number(limit)
   };
   let filter_to = {
     kinds: [4, 1404],
     authors: [to],
     "#p": [from],
-    limit: limit
+    limit: Number(limit)
   };
   let pool = new SimplePool({ seenOnEnabled: true });
   let results = await pool.list(relays, [filter_from, filter_to]);
@@ -149,5 +149,6 @@ export async function analysis_chats(relays, from, to, limit) {
     }else if (element.pubkey == to ) {
       console.log(element.created_at, "<<<", pool.seenOn(element.id))
     }
+    console.log(element.pubkey)
   });
 }
