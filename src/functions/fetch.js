@@ -7,7 +7,7 @@ import { getTags } from "../utils/utils.js";
 import { reassembleJsonDecrypted } from "../utils/json.js";
 import { filters } from "../data/filter.js";
 import { nip19 } from "nostr-tools";
-import { formatDate } from "../utils/utils.js";
+import { formatDate, simplifyRelayURI } from "../utils/utils.js";
 
 function transformTags(tags) {
   const output = {};
@@ -131,24 +131,37 @@ export async function analysis_chats(relays, from, to, limit) {
     kinds: [4, 1404],
     authors: [from],
     "#p": [to],
-    limit: Number(limit)
+    limit: Number(limit),
   };
   let filter_to = {
     kinds: [4, 1404],
     authors: [to],
     "#p": [from],
-    limit: Number(limit)
+    limit: Number(limit),
   };
-  let pool = new SimplePool({ seenOnEnabled: true });
+  let pool = new SimplePool({ eoseSubTimeout: 5000, seenOnEnabled: true });
   let results = await pool.list(relays, [filter_from, filter_to]);
-  results = results.sort((a, b) => a.created_at - b.created_at);
-  results.forEach(element => {
-    element.created_at = formatDate(element.created_at)
-    if(element.pubkey == from) {
-      console.log(element.created_at, ">>>", pool.seenOn(element.id))
-    }else if (element.pubkey == to ) {
-      console.log(element.created_at, "<<<", pool.seenOn(element.id))
+  results = results.sort((a, b) => b.created_at - a.created_at).slice(0, limit);
+  results.forEach((element) => {
+    element.created_at = formatDate(element.created_at);
+    if (element.pubkey == from) {
+      console.log(
+        element.created_at,
+        ">>>",
+        pool
+          .seenOn(element.id)
+          .map((a) => simplifyRelayURI(a))
+          .join("|")
+      );
+    } else if (element.pubkey == to) {
+      console.log(
+        element.created_at,
+        "<<<",
+        pool
+          .seenOn(element.id)
+          .map((a) => simplifyRelayURI(a))
+          .join("|")
+      );
     }
-    console.log(element.pubkey)
   });
 }

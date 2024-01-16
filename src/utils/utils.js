@@ -98,3 +98,9 @@ export function timeout(ms, promise) {
     );
   });
 }
+
+export function simplifyRelayURI(relay) {
+  const result = relay.replace("wss://", "").replace("/", "");
+  const parts =  result.split(".")
+  return parts[parts.length -2]
+}
