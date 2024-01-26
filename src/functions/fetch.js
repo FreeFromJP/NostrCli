@@ -7,7 +7,7 @@ import { getTags } from "../utils/utils.js";
 import { reassembleJsonDecrypted } from "../utils/json.js";
 import { filters } from "../data/filter.js";
 import { nip19 } from "nostr-tools";
-import { formatDate } from "../utils/utils.js";
+import { formatDate, simplifyRelayURI } from "../utils/utils.js";
 
 function transformTags(tags) {
   const output = {};
@@ -131,24 +131,62 @@ export async function analysis_chats(relays, from, to, limit) {
     kinds: [4, 1404],
     authors: [from],
     "#p": [to],
-    limit: Number(limit)
+    limit: Number(limit),
   };
   let filter_to = {
     kinds: [4, 1404],
     authors: [to],
     "#p": [from],
-    limit: Number(limit)
+    limit: Number(limit),
   };
-  let pool = new SimplePool({ seenOnEnabled: true });
+  let pool = new SimplePool({ eoseSubTimeout: 5000, seenOnEnabled: true });
   let results = await pool.list(relays, [filter_from, filter_to]);
-  results = results.sort((a, b) => a.created_at - b.created_at);
-  results.forEach(element => {
-    element.created_at = formatDate(element.created_at)
-    if(element.pubkey == from) {
-      console.log(element.created_at, ">>>", pool.seenOn(element.id))
-    }else if (element.pubkey == to ) {
-      console.log(element.created_at, "<<<", pool.seenOn(element.id))
+  
+  results = results.sort((a, b) => b.created_at - a.created_at).slice(0, limit);
+  let previousRelayList = []; // Initialize as an empty array
+  let isFirstLine = true; // Flag for the first line
+
+  results.forEach((element) => {
+    element.created_at = formatDate(element.created_at);
+    let currentRelayList = pool
+      .seenOn(element.id)
+      .sort()
+      .map((a) => simplifyRelayURI(a));
+
+    let direction = element.pubkey == from ? ">>>" : "<<<";
+
+    if (isFirstLine) {
+      // For the first line, just print the relays
+      console.log(`${element.created_at} ${direction} ${currentRelayList.join("|")}`);
+      isFirstLine = false;
+    } else {
+      let commonRelays = previousRelayList
+        .filter((r) => currentRelayList.includes(r))
+        .join("|");
+      let newRelays = currentRelayList
+        .filter((r) => !previousRelayList.includes(r))
+        .join("|");
+      let removedRelays = previousRelayList
+        .filter((r) => !currentRelayList.includes(r))
+        .join("|");
+
+      if (newRelays.length === 0 && removedRelays.length === 0) {
+        // If there are no changes, only print the timestamp and an upward arrow
+        console.log(`${element.created_at} ${direction} ↑`);
+      } else {
+        // Print common relays, and then new and removed relays
+        let logLine = `${element.created_at} ${direction} = [${commonRelays}]`;
+        if (newRelays.length > 0) {
+          logLine += `, + [${newRelays}]`;
+        }
+        if (removedRelays.length > 0) {
+          logLine += `, - [${removedRelays}]`;
+        }
+        console.log(logLine);
+      }
     }
-    console.log(element.pubkey)
+
+    // Update the previous relay list for the next iteration
+    previousRelayList = currentRelayList;
   });
 }
